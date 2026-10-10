@@ -1,0 +1,47 @@
+Package: frazil
+Title: Antarctic Sea Ice Figures from the NSIDC Sea Ice Index
+Version: 0.1.0
+Authors@R: 
+    person("Michael", "Wethington", , "michael.wethington@briloon.org", role = c("aut", "cre"))
+Description: Downloads the NSIDC Sea Ice Index, Version 4 (data set G02135)
+    for the Southern Hemisphere, computes daily and monthly extent statistics
+    with a record rule that allows for the 2025 change to the AMSR2 sensor,
+    builds an Imhof-style terrain from REMA elevation and the SCAR Antarctic
+    Digital Database, and renders slide figures and an animation of sea ice
+    concentration and extent for any date and any polar map window.
+License: MIT + file LICENSE
+URL: https://github.com/M-Fox-Wethington/frazil
+BugReports: https://github.com/M-Fox-Wethington/frazil/issues
+Depends: 
+    R (>= 4.1)
+Imports: 
+    cowplot,
+    curl,
+    dplyr,
+    ggplot2 (>= 3.5.0),
+    ggrepel,
+    ggspatial,
+    grDevices,
+    grid,
+    png,
+    ragg,
+    readr,
+    readxl,
+    rlang,
+    scales,
+    sf,
+    stats,
+    terra,
+    tidyterra,
+    tools,
+    utils
+Suggests: 
+    mapppdr,
+    testthat (>= 3.0.0),
+    withr
+Remotes: 
+    CCheCastaldo/mapppdr
+Config/testthat/edition: 3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
