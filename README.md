@@ -15,6 +15,21 @@ The package grew out of the figures made for a talk aboard ship during the
 2026-27 Antarctic Peninsula field season. The name is the field term for the first
 ice crystals that form in open water.
 
+## The figures
+
+Every figure is a 13.333 by 7.5 inch slide. These previews are reduced copies of
+the 600 dpi output for 7 October 2026.
+
+![Sea ice around Antarctica on 7 October 2026](man/figures/map_circumpolar.jpg)
+
+| | |
+|---|---|
+| ![Sea ice around the Antarctic Peninsula](man/figures/map_peninsula.jpg) `fig_map_peninsula()` | ![Sea ice in the Weddell Sea](man/figures/map_weddell.jpg) `fig_map_weddell()` |
+| ![Penguin colonies around the Weddell Sea](man/figures/map_weddell_colonies.jpg) `fig_map_colonies()` | ![The last frame of the animation](man/figures/sea_ice_12_months_last_frame.jpg) `fig_animation()` |
+| ![Extent through the year, every year](man/figures/extent_daily.jpg) `fig_extent_daily()` | ![Month-by-month departures since 1979](man/figures/extent_anomaly_stripes.jpg) `fig_extent_anomaly()` |
+| ![Weddell Sea extent against its average](man/figures/weddell_extent.jpg) `fig_sector_extent("Weddell")` | ![Trend by sector](man/figures/sector_trends.jpg) `fig_sector_trends()` |
+| ![Change in February and September ice cover](man/figures/map_cover_change.jpg) `fig_map_cover_change()` | ![Change in days a year with ice](man/figures/map_season_change.jpg) `fig_map_season_change()` |
+
 ## Installation
 
 ```r
