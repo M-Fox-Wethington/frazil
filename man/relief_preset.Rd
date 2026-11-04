@@ -36,6 +36,20 @@ Neither preset sets the grid resolution, because that belongs to the frame:
 pick a \code{grid_res} that puts at least as many terrain columns across the
 window as the panel will print pixels, or the relief is resampled away.
 }
+\section{Changing a preset will not reach every sheet that uses it}{
+
+The Antarctic Program's GIS Day sheets copy these four values into their own
+scripts rather than calling this function, which is that project's house
+style of keeping each sheet self-contained. As of 4 November 2026 the two
+Elephant Island sheets, the Peninsula sheet and the Antarctic sea ice sheet
+all carry the \code{"rema"} numbers inline. Editing them here therefore changes
+nothing in those sheets, and no guard will notice: each sheet's terrain
+cache signature compares the cached raster against that script's own
+constants, so a sheet and its cache stay consistent with each other while
+both drift away from this preset. If you change a preset, grep those scripts
+for the old values.
+}
+
 \examples{
 p <- relief_preset("rema")
 p$shadow_floor
