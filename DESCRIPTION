@@ -1,6 +1,6 @@
 Package: frazil
 Title: Antarctic Sea Ice Figures from the NSIDC Sea Ice Index
-Version: 0.1.0
+Version: 0.1.0.9000
 Authors@R: 
     person("Michael", "Wethington", , "michael.wethington@briloon.org", role = c("aut", "cre"))
 Description: Downloads the NSIDC Sea Ice Index, Version 4 (data set G02135)

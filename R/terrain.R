@@ -1,3 +1,45 @@
+#' Settled relief looks for [build_priority_terrain()]
+#'
+#' Two treatments of the same Imhof recipe, kept here so the project's sheets
+#' agree rather than each carrying its own four numbers.
+#'
+#' @details
+#' `"quiet"` is the original: a light hand on the shadows, so a continent drawn
+#' behind a subject of its own stays behind it. Use it for a locator, or
+#' wherever the terrain is context.
+#'
+#' `"rema"` is the look of the Reference Elevation Model of Antarctica's own
+#' published poster, which is a grey-on-white sheet carrying strong relief.
+#' Four things separate it, and the shadow floor does most of the work. The
+#' floor is the share of full brightness a fully shadowed slope keeps, so
+#' raising it is what flattens a scarp; dropping it from 0.42 to 0.16 is what
+#' lets the ice streams across the plateau read as flow lines. The light is
+#' concentrated on the northwest, because blending four directions evenly is
+#' itself a softening. And the ramp goes near-neutral, because an ice blue
+#' reads as a tint laid over a grey-on-white sheet.
+#'
+#' Neither preset sets the grid resolution, because that belongs to the frame:
+#' pick a `grid_res` that puts at least as many terrain columns across the
+#' window as the panel will print pixels, or the relief is resampled away.
+#'
+#' @param name `"quiet"` or `"rema"`.
+#' @return A list with `z_factor`, `shadow_floor`, `lights` and `ice_ramp`,
+#'   named to be spliced into a [build_priority_terrain()] call.
+#' @examples
+#' p <- relief_preset("rema")
+#' p$shadow_floor
+#' @export
+relief_preset <- function(name = c("quiet", "rema")) {
+  name <- match.arg(name)
+  switch(name,
+    quiet = list(z_factor = 22, shadow_floor = 0.42,
+                 lights = c(0.45, 0.20, 0.15, 0.20),
+                 ice_ramp = TERRAIN_ICE),
+    rema  = list(z_factor = 30, shadow_floor = 0.16,
+                 lights = c(0.62, 0.14, 0.10, 0.14),
+                 ice_ramp = c("#ccd4d9", "#ffffff")))
+}
+
 # --- Priority-map terrain -----------------------------------------------------
 # The maps use the terrain of the BRI Peninsula priority-sites map (the
 # imhof-peninsula-priority-map skill). REMA elevation is shaded by a
@@ -53,20 +95,44 @@ load_rock_vect <- function(window_bbox, crs_wkt, paths = frazil_paths()) {
 #'   circumpolar terrain uses 12 at 1.5 km because the ice sheet's slopes are
 #'   about five times gentler on cells that coarse.
 #' @param shadow_floor Darkest shading, as a share of the full color.
+#' @param lights The four hillshade weights, northwest, north, northeast and
+#'   west in that order. Concentrating them on the northwest sharpens relief;
+#'   spreading them evenly softens it. See [relief_preset()].
+#' @param ice_ramp Colors of the ice hypsometric ramp, low to high.
 #' @param terrain_cache Folder for the cached rasters.
 #' @param paths The list from [frazil_paths()], for the rock-outcrop layer.
 #' @return A list with `rgb`, a three-band SpatRaster, and `hs`, the hillshade.
+#' @seealso [relief_preset()] for the two settled looks.
 #' @export
 build_priority_terrain <- function(dem_path, window_bbox, crs_wkt, grid_res, land,
                                    cache_name, z_factor = 3, shadow_floor = 0.38,
+                                   lights = c(0.45, 0.20, 0.15, 0.20),
+                                   ice_ramp = TERRAIN_ICE,
                                    terrain_cache = frazil_paths()$terrain_cache,
                                    paths = frazil_paths()) {
+  stopifnot(length(lights) == 4, all(is.finite(lights)), all(lights >= 0))
   dir.create(terrain_cache, recursive = TRUE, showWarnings = FALSE)
   rgb_path <- file.path(terrain_cache, paste0(cache_name, "_rgb.tif"))
   hs_path  <- file.path(terrain_cache, paste0(cache_name, "_hillshade.tif"))
+
+  # The cache is named by the caller, so the name says nothing about which
+  # exaggeration, shadow floor, lights or ramp produced the image, and changing
+  # any of them while keeping the name returns the old one. That shape of fault
+  # has shipped in this codebase before. The settings go in a sidecar and a
+  # mismatch rebuilds.
+  sig_path <- file.path(terrain_cache, paste0(cache_name, "_signature.txt"))
+  sig <- paste(c(sprintf("z=%.4f", z_factor),
+                 sprintf("floor=%.4f", shadow_floor),
+                 paste0("lights=", paste(sprintf("%.4f", lights), collapse = ",")),
+                 paste0("ice=", paste(ice_ramp, collapse = ",")),
+                 sprintf("res=%.4f", grid_res)), collapse = "|")
   if (file.exists(rgb_path) && file.exists(hs_path)) {
-    message("Loading cached terrain: ", basename(rgb_path))
-    return(list(rgb = terra::rast(rgb_path), hs = terra::rast(hs_path)))
+    if (file.exists(sig_path) && identical(trimws(readLines(sig_path)[1]), sig)) {
+      message("Loading cached terrain: ", basename(rgb_path))
+      return(list(rgb = terra::rast(rgb_path), hs = terra::rast(hs_path)))
+    }
+    message("The cached terrain was built from different settings; rebuilding ",
+            basename(rgb_path))
   }
   if (!file.exists(dem_path)) stop("Elevation model not found at ", dem_path, call. = FALSE)
   message(sprintf("Building terrain at %g m from %s ...", grid_res, basename(dem_path)))
@@ -88,10 +154,10 @@ build_priority_terrain <- function(dem_path, window_bbox, crs_wkt, grid_res, lan
   slp <- terra::terrain(dem_x, "slope", unit = "radians")
   asp <- terra::terrain(dem_x, "aspect", unit = "radians")
   rm(dem_x)
-  hs <- 0.45 * terra::shade(slp, asp, angle = 45, direction = 315) +
-        0.20 * terra::shade(slp, asp, angle = 50, direction = 0) +
-        0.15 * terra::shade(slp, asp, angle = 40, direction = 45) +
-        0.20 * terra::shade(slp, asp, angle = 35, direction = 270)
+  hs <- lights[1] * terra::shade(slp, asp, angle = 45, direction = 315) +
+        lights[2] * terra::shade(slp, asp, angle = 50, direction = 0) +
+        lights[3] * terra::shade(slp, asp, angle = 40, direction = 45) +
+        lights[4] * terra::shade(slp, asp, angle = 35, direction = 270)
   names(hs) <- "hillshade"
   hs <- terra::writeRaster(hs, hs_path, overwrite = TRUE, datatype = "FLT4S",
                            gdal = c("COMPRESS=LZW", "TILED=YES"))
@@ -115,7 +181,7 @@ build_priority_terrain <- function(dem_path, window_bbox, crs_wkt, grid_res, lan
   rm(v_hs); gc(verbose = FALSE)
   bright <- hsn > 0.72
 
-  pal_ice  <- grDevices::col2rgb(grDevices::colorRampPalette(TERRAIN_ICE)(256)) / 255
+  pal_ice  <- grDevices::col2rgb(grDevices::colorRampPalette(ice_ramp)(256)) / 255
   pal_rock <- grDevices::col2rgb(grDevices::colorRampPalette(TERRAIN_ROCK)(256)) / 255
   ice_exp  <- c(0.92, 0.97, 1.08); rock_exp <- c(0.90, 0.95, 1.02)
   ice_lift <- c(0.025, 0.012, 0);  rock_lift <- c(0.030, 0.018, 0)
@@ -139,6 +205,7 @@ build_priority_terrain <- function(dem_path, window_bbox, crs_wkt, grid_res, lan
   rgb <- terra::mask(rgb, terra::vect(c(land$land, land$shelves)))
   rgb <- terra::writeRaster(rgb, rgb_path, overwrite = TRUE, datatype = "INT1U",
                             gdal = c("COMPRESS=LZW", "TILED=YES"))
+  writeLines(sig, sig_path)
   message(sprintf("  Terrain built in %.1f min",
                   as.numeric(difftime(Sys.time(), t0, units = "mins"))))
   list(rgb = rgb, hs = terra::rast(hs_path))

@@ -13,6 +13,8 @@ build_priority_terrain(
   cache_name,
   z_factor = 3,
   shadow_floor = 0.38,
+  lights = c(0.45, 0.2, 0.15, 0.2),
+  ice_ramp = TERRAIN_ICE,
   terrain_cache = frazil_paths()$terrain_cache,
   paths = frazil_paths()
 )
@@ -35,6 +37,12 @@ circumpolar terrain uses 12 at 1.5 km because the ice sheet's slopes are
 about five times gentler on cells that coarse.}
 
 \item{shadow_floor}{Darkest shading, as a share of the full color.}
+
+\item{lights}{The four hillshade weights, northwest, north, northeast and
+west in that order. Concentrating them on the northwest sharpens relief;
+spreading them evenly softens it. See \code{\link[=relief_preset]{relief_preset()}}.}
+
+\item{ice_ramp}{Colors of the ice hypsometric ramp, low to high.}
 
 \item{terrain_cache}{Folder for the cached rasters.}
 
@@ -59,4 +67,7 @@ stop at \code{shadow_floor}, each channel is shaded with its own exponent, warme
 on rock, and sunlit slopes get a small warm lift. When the terrain grid is at
 least twice as coarse as the mosaic, the mosaic is averaged onto it so every
 source cell contributes.
+}
+\seealso{
+\code{\link[=relief_preset]{relief_preset()}} for the two settled looks.
 }
