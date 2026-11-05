@@ -162,16 +162,23 @@ theme_slide <- function(ground = GROUND) {
 #' 600 dpi) and `name.pdf` through `cairo_pdf`, both 13.333 by 7.5 inches, into
 #' `out_dir`. The figure functions call this themselves.
 #'
+#' Neither device says what its colors mean, so unless `srgb` is `FALSE` both
+#' files are given an sRGB declaration once they are written. See
+#' [declare_srgb()] for what that puts in each format and why. A figure that
+#' carries no profile is still a figure, so a failure there is a warning and
+#' never stops the save.
+#'
 #' @param plot A ggplot or cowplot object.
 #' @param name File name without extension.
 #' @param out_dir Folder to write into. `NULL` writes nothing.
 #' @param width,height Size in inches.
 #' @param bg Background color.
 #' @param dpi Resolution of the PNG.
+#' @param srgb Declare sRGB inside both files once written. `TRUE` by default.
 #' @return The two paths, invisibly, or `NULL` when nothing was written.
 #' @export
 save_slide <- function(plot, name, out_dir = frazil_paths()$output, width = SLIDE_W,
-                       height = SLIDE_H, bg = GROUND, dpi = 600) {
+                       height = SLIDE_H, bg = GROUND, dpi = 600, srgb = TRUE) {
   if (is.null(out_dir)) return(invisible(NULL))
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   png_path <- file.path(out_dir, paste0(name, ".png"))
@@ -180,8 +187,58 @@ save_slide <- function(plot, name, out_dir = frazil_paths()$output, width = SLID
                   dpi = dpi, device = ragg::agg_png, bg = bg)
   ggplot2::ggsave(pdf_path, plot, width = width, height = height, units = "in",
                   device = grDevices::cairo_pdf, bg = bg)
+  if (isTRUE(srgb)) declare_srgb(c(png_path, pdf_path))
   message("Saved ", png_path, " and ", basename(pdf_path))
   invisible(c(png = png_path, pdf = pdf_path))
+}
+
+#' Declare sRGB inside a PNG or a PDF that has just been written
+#'
+#' Neither of the devices [save_slide()] writes through says what its numbers
+#' mean. ragg writes 8-bit RGB with no profile attached and `cairo_pdf` writes
+#' DeviceRGB with nothing on the catalog, so a print shop has to be told in
+#' writing to read the files as sRGB, and that instruction does not survive the
+#' files being forwarded to a third party. This puts the declaration inside the
+#' files, where it travels with them.
+#'
+#' A PNG gets an iCCP chunk holding the operating system's own copy of the ICC
+#' sRGB profile, spliced in after IHDR with the compressed pixel data copied
+#' byte for byte, so the picture cannot change. A PDF gets two entries that
+#' answer different questions: an `/OutputIntents` array on the catalog naming
+#' the condition the figure was prepared for, which is what a prepress preflight
+#' reports, and a `/DefaultRGB` entry in the page resources, which is the PDF
+#' specification's own mechanism for saying how to read the DeviceRGB numbers
+#' already in the file. The PDF is appended to and not rewritten, so its
+#' existing content streams are untouched.
+#'
+#' It needs Python on the path with PyMuPDF installed. Anything that goes wrong,
+#' a missing interpreter included, is a warning naming the files that went out
+#' unprofiled, never an error.
+#'
+#' @param paths Files to declare. Each must be a `.png` or a `.pdf`.
+#' @return `TRUE` when the declaration was made, `FALSE` otherwise, invisibly.
+#' @export
+declare_srgb <- function(paths) {
+  unprofiled <- paste(basename(paths), collapse = " and ")
+  script <- system.file("python", "embed_srgb.py", package = "frazil")
+  if (!nzchar(script)) {
+    warning("This build of frazil ships no embed_srgb.py, so ", unprofiled,
+            " carry no color profile.", call. = FALSE)
+    return(invisible(FALSE))
+  }
+  # Its own per-file report is noise next to the "Saved ..." message, so the
+  # standard output is dropped. Anything it writes to standard error is left
+  # alone, because that is where a failure explains itself.
+  status <- tryCatch(
+    system2("python", c("-I", shQuote(script), shQuote(paths)), stdout = FALSE),
+    error = function(e) 127L, warning = function(w) 127L)
+  if (!identical(as.integer(status), 0L)) {
+    warning("Could not declare sRGB, so ", unprofiled, " carry no color ",
+            "profile and a print shop has to be told in writing to read them ",
+            "as sRGB.", call. = FALSE)
+    return(invisible(FALSE))
+  }
+  invisible(TRUE)
 }
 
 # --- Map colors ---------------------------------------------------------------

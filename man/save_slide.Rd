@@ -11,7 +11,8 @@ save_slide(
   width = SLIDE_W,
   height = SLIDE_H,
   bg = GROUND,
-  dpi = 600
+  dpi = 600,
+  srgb = TRUE
 )
 }
 \arguments{
@@ -26,6 +27,8 @@ save_slide(
 \item{bg}{Background color.}
 
 \item{dpi}{Resolution of the PNG.}
+
+\item{srgb}{Declare sRGB inside both files once written. \code{TRUE} by default.}
 }
 \value{
 The two paths, invisibly, or \code{NULL} when nothing was written.
@@ -34,4 +37,11 @@ The two paths, invisibly, or \code{NULL} when nothing was written.
 Writes \code{name.png} through ragg at \code{dpi} (8000 by 4500 pixels at the default
 600 dpi) and \code{name.pdf} through \code{cairo_pdf}, both 13.333 by 7.5 inches, into
 \code{out_dir}. The figure functions call this themselves.
+}
+\details{
+Neither device says what its colors mean, so unless \code{srgb} is \code{FALSE} both
+files are given an sRGB declaration once they are written. See
+\code{\link[=declare_srgb]{declare_srgb()}} for what that puts in each format and why. A figure that
+carries no profile is still a figure, so a failure there is a warning and
+never stops the save.
 }

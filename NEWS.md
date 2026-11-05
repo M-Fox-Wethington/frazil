@@ -1,5 +1,16 @@
 # frazil 0.1.0.9000 (development)
 
+* `save_slide()` now declares sRGB inside both files it writes, and
+  `declare_srgb()` does the same for a PNG or a PDF written any other way.
+  Neither export device says what its numbers mean, so until now a print shop
+  had to be told in writing to read the files as sRGB, and that instruction
+  does not survive the files being forwarded. A PNG gets an iCCP chunk with
+  the compressed pixel data copied byte for byte, and a PDF gets an output
+  intent on the catalog plus a `/DefaultRGB` entry in the page resources,
+  appended so its content streams are untouched. It needs Python with PyMuPDF;
+  without them the files are still written and a warning names them as
+  unprofiled. Pass `srgb = FALSE` to skip it.
+
 * `relief_preset()` gives the two settled relief looks, `"quiet"` and
   `"rema"`, so the project's sheets agree on a treatment rather than each
   carrying its own four numbers. `"rema"` is the look of the Reference
