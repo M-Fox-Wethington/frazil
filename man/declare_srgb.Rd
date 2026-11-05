@@ -31,6 +31,19 @@ specification's own mechanism for saying how to read the DeviceRGB numbers
 already in the file. The PDF is appended to and not rewritten, so its
 existing content streams are untouched.
 
+Running it again over the same files is safe, and the two formats stay safe
+by different means. The PNG splice drops any iCCP or sRGB chunk already
+present before inserting its own, so repeated passes leave exactly one and
+the file size does not move. A PDF that already declares sRGB is skipped
+rather than written again, because a PDF is appended to and not rewritten, so
+a second pass would add another incremental section and leave the first
+pass's copy of the profile in the file with nothing pointing at it.
+
+A pass reaches the files it is pointed at and nothing derived from them, so a
+zip built before the pass still holds the unprofiled copies and has to be
+rebuilt afterward. That is the reason \code{\link[=save_slide]{save_slide()}} declares at write time
+instead of leaving it to a later sweep.
+
 It needs Python on the path with PyMuPDF installed. Anything that goes wrong,
 a missing interpreter included, is a warning naming the files that went out
 unprofiled, never an error.
